@@ -3,13 +3,16 @@
 #All qunatities are in SI units
 #Thomas Windbacher, 23.3.2017
 
-
 #Required libraries and functiionalities
 import os
 import io
 import math  as ma
 import numpy as np
 from scipy.integrate import ode
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+import pylab
 
 #Constants and parameters
 kb    =  1.38064852e-23;  # J/K
@@ -81,9 +84,9 @@ def Htherm(T, alpha, gamma, V, Ms, dt) :
  return ma.sqrt((2.*kb*T*alpha)/(gamma*V*mu0*Ms*dt*(1.+alpha*alpha)))*np.array(np.random.normal(0.,1.,3));
 
 #Defining the effective field term
-def Heff(m, Ms, N, K1vec, K1):
+def Heff(m, Ms, N, K1vec, K1,alpha,gamma,V,dt):
  "Effective field containing all physical contributions"
- return Huni(m, K1v, Ms, K1) + Hdem(m, N, Ms) 
+ return Huni(m, K1vec, Ms, K1) + Hdem(m, N, Ms) + Htherm(T,alpha,gamma,V,Ms,dt) 
 
 
 #Definition of the spin transfer torque terms
@@ -105,11 +108,11 @@ def tau (m, s, I, p, V, Ms, gamma, epsilon, g) :
 #Define right hand side of the ODE
 def f(t,m,prefactor):
  "RHS of LLG-ODE"
- heff      = Heff(m,Ms,N,K1vec,K1)
- precesion = ma.cross(m,heff)
- damping   = alpha*ma.cross(m,precesion)
+ heff      = Heff(m,Ms,N,K1vec,K1,alpha,gamma,V,dt)
+ precesion = np.cross(m,heff)
+ damping   = alpha*np.cross(m,precesion)
  rhs       = precesion + damping
- return prefactor*[rhs[0],rhs[1],rhs[2]]
+ return prefactor*rhs
 
 #Geometry related calculations
 a  = 3.e-08
@@ -127,37 +130,58 @@ prefactor = -1.*gamma/(1+alpha*alpha)
 # Geometry dependent but constant.
 # It is sufficient to calculate only once before the integration
 N = np.array([Dx(a,b,c),Dy(a,b,c),Dz(a,b,c)])
-#test = Huni(m,K1vec,Ms,K1)
-#print (test)
 
+#By employing spherical coordinates |m|=1 is ensured
+#Starting position of magnetization
 phi   = 0.2
 theta = 1.
-tend  = 2.e-08
 m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
+#Start and end of simulation time
 t0    = 0.
+tend  = 1.e-08
+#Initialization of arrays with start values
+sol   = np.array([m0])
+time  = np.array([t0])
 
-#    atol : float or sequence absolute tolerance for solution
-#    rtol : float or sequence relative tolerance for solution
-#    nsteps : int Maximum number of (internally defined) steps allowed during one call to the solver.
-#    first_step : float
-#    max_step : float
-#    safety : float Safety factor on new step selection (default 0.9)
-#    ifactor : float
-#    dfactor : float Maximum factor to increase/decrease step size by in one step
-#    beta : float Beta parameter for stabilised step size control.
-#    verbosity : int Switch for printing messages (< 0 for no messages).
-#r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,verbosity=True)
-#r.set_initial_value(m0, t0).set_f_params(prefactor)
-#
-#while r.successful() and r.t < tend:
-#      r.integrate(r.t+dt)
-#      print("%g %g" % (r.t, r.y))
-
-#########################################################################################################
+##########################################################################################
 ##Main section
-#########################################################################################################
+##########################################################################################
+
+#Set up ode solver with Runge Kutta method
+#atol : float or sequence absolute tolerance for solution
+#rtol : float or sequence relative tolerance for solution
+#nsteps : int Maximum number of (internally defined) steps allowed during one call to the solver.
+#first_step : float
+#max_step : float
+#safety : float Safety factor on new step selection (default 0.9)
+#ifactor : float
+#dfactor : float Maximum factor to increase/decrease step size by in one step
+#beta : float Beta parameter for stabilised step size control.
+# verbosity : int Switch for printing messages (< 0 for no messages).
+r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,verbosity=True)
+r.set_initial_value(m0, t0).set_f_params(prefactor)
+#
+while r.successful() and r.t < tend:
+      r.integrate(r.t+dt)
+      time = np.append(time,r.t)
+      sol  = np.append(sol,np.array([[ r.y[0],r.y[1],r.y[2] ]]),axis=0)
+
+##########################################################################################
+##Visualization of simulation results
+##########################################################################################
+#mx(t)
+plt.plot(time, sol[:,0],label='mx')
+#my(t)
+plt.plot(time, sol[:,1],label='my')
+#mz(t)
+plt.plot(time, sol[:,2],label='mz')
+#turn on legend
+plt.legend()
+#set x- and y-axis labels
+plt.ylabel('normalized magnetization (1)')
+plt.xlabel('time (s)')
+#put it on the display
+plt.show()
 
 
 
-##Test section
-print("%g %g %g %g" % (N[0],N[1],N[2],N.sum()))
