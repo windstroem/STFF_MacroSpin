@@ -8,6 +8,7 @@ import os
 import io
 import math  as ma
 import numpy as np
+from numpy import linalg as la
 from scipy.integrate import ode
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -84,7 +85,7 @@ def Htherm(T, alpha, gamma, V, Ms, dt) :
  return ma.sqrt((2.*kb*T*alpha)/(gamma*V*mu0*Ms*dt*(1.+alpha*alpha)))*np.array(np.random.normal(0.,1.,3));
 
 #Defining the effective field term
-def Heff(m, Ms, N, K1vec, K1,alpha,gamma,V,dt):
+def Heff(m, Ms, N, K1vec, K1,alpha,gamma,V,T,dt):
  "Effective field containing all physical contributions"
  return Huni(m, K1vec, Ms, K1) + Hdem(m, N, Ms) + Htherm(T,alpha,gamma,V,Ms,dt) 
 
@@ -108,9 +109,12 @@ def tau (m, s, I, p, V, Ms, gamma, epsilon, g) :
 #Define right hand side of the ODE
 def f(t,m,prefactor):
  "RHS of LLG-ODE"
- heff      = Heff(m,Ms,N,K1vec,K1,alpha,gamma,V,dt)
- precesion = np.cross(m,heff)
- damping   = alpha*np.cross(m,precesion)
+ #Normalize m - otherwise errors accumulate and m starts to drift 
+ #towards bigger and bigger >1 values
+ mm= m/la.norm(m)
+ heff      = Heff(mm,Ms,N,K1vec,K1,alpha,gamma,V,Temp,dt)
+ precesion = np.cross(mm,heff)
+ damping   = alpha*np.cross(mm,precesion)
  rhs       = precesion + damping
  return prefactor*rhs
 
@@ -122,7 +126,7 @@ c  = 3.e-09
 VA = a*a*c
 VB = VA
 VQ = a*2.*a*c
-V = VA + VB + VQ
+V = VA;# + VB + VQ
 
 #Prefactor for RHS of equation
 prefactor = -1.*gamma/(1+alpha*alpha)
@@ -138,7 +142,8 @@ theta = 1.
 m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
 #Start and end of simulation time
 t0    = 0.
-tend  = 1.e-08
+tend  = 1.e-8
+
 #Initialization of arrays with start values
 sol   = np.array([m0])
 time  = np.array([t0])
@@ -158,12 +163,13 @@ time  = np.array([t0])
 #dfactor : float Maximum factor to increase/decrease step size by in one step
 #beta : float Beta parameter for stabilised step size control.
 # verbosity : int Switch for printing messages (< 0 for no messages).
-r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,verbosity=True)
+r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,nsteps=1e5,rtol=1.e-2,verbosity=True)
 r.set_initial_value(m0, t0).set_f_params(prefactor)
 #
 while r.successful() and r.t < tend:
       r.integrate(r.t+dt)
       time = np.append(time,r.t)
+#      print("t: %g, \%: %g" % (r.t, r.t/tend*100.) ,end='')
       sol  = np.append(sol,np.array([[ r.y[0],r.y[1],r.y[2] ]]),axis=0)
 
 ##########################################################################################
