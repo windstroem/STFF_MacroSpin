@@ -6,6 +6,7 @@
 #Required libraries and functiionalities
 import os
 import io
+import time
 import math  as ma
 import numpy as np
 from numpy import linalg as la
@@ -15,7 +16,12 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import pylab
 
+#start measuring run time
+start_time = time.clock()
+
+######################################################
 #Constants and parameters
+######################################################
 kb    =  1.38064852e-23;  # J/K
 hbar  =  1.054571800e-34; # Js
 qe    =  1.60217662e-19;  # As
@@ -36,9 +42,49 @@ Aexch =  2.e-11; # J/m
 #Magnetization saturation
 Ms    = 4.e5; # A/m 
 
+####################################################
+#Parameters for spin-transfer torque calculation
+####################################################
 
+#Orientation of polarization vector (must be normalized)
+s       = np.array([0.,0.,-1.]);
+#Aplied current in Ampere
+I       = -1.e2; 
+#Polarization
+p       = 0.9; # for oxides
+#Field like torque relative strength
+epsilon = 0.1
+
+#By employing spherical coordinates |m|=1 is ensured
+#Starting position of magnetization
+phi   = 0.2
+theta = 1.
+m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
+#Start and end of simulation time
+t0    = 0.
+tend  = 1.e-9
+
+#Initialization of arrays with start values
+sol   = np.array([m0])
+time  = np.array([t0])
+
+
+#Geometry related calculations
+a  = 3.e-08
+b  = 3.e-08
+c  = 3.e-09
+
+VA = a*a*c
+VB = VA
+VQ = a*2.*a*c
+V = VA;# + VB + VQ
+
+#Prefactor for RHS of equation
+prefactor = -1.*gamma/(1+alpha*alpha)
+
+######################################################################
 #Define functions for effective field calculations
-
+######################################################################
 def Dz (a, b, c) :
  "Demagnetization factor along z-axis"
  return 1./ma.pi*( 
@@ -115,38 +161,13 @@ def f(t,m,prefactor):
  heff      = Heff(mm,Ms,N,K1vec,K1,alpha,gamma,V,Temp,dt)
  precesion = np.cross(mm,heff)
  damping   = alpha*np.cross(mm,precesion)
- rhs       = precesion + damping
+ stt       = tau(mm,s,I,p,V,Ms,gamma,epsilon,gox(p,m,s))
+ rhs       = precesion + damping + stt
  return prefactor*rhs
-
-#Geometry related calculations
-a  = 3.e-08
-b  = 3.e-08
-c  = 3.e-09
-
-VA = a*a*c
-VB = VA
-VQ = a*2.*a*c
-V = VA;# + VB + VQ
-
-#Prefactor for RHS of equation
-prefactor = -1.*gamma/(1+alpha*alpha)
 
 # Geometry dependent but constant.
 # It is sufficient to calculate only once before the integration
 N = np.array([Dx(a,b,c),Dy(a,b,c),Dz(a,b,c)])
-
-#By employing spherical coordinates |m|=1 is ensured
-#Starting position of magnetization
-phi   = 0.2
-theta = 1.
-m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
-#Start and end of simulation time
-t0    = 0.
-tend  = 1.e-8
-
-#Initialization of arrays with start values
-sol   = np.array([m0])
-time  = np.array([t0])
 
 ##########################################################################################
 ##Main section
@@ -163,13 +184,13 @@ time  = np.array([t0])
 #dfactor : float Maximum factor to increase/decrease step size by in one step
 #beta : float Beta parameter for stabilised step size control.
 # verbosity : int Switch for printing messages (< 0 for no messages).
-r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,nsteps=1e5,rtol=1.e-2,verbosity=True)
+r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,nsteps=1e5,rtol=1.e-3,verbosity=True)
 r.set_initial_value(m0, t0).set_f_params(prefactor)
 #
 while r.successful() and r.t < tend:
       r.integrate(r.t+dt)
       time = np.append(time,r.t)
-#      print("t: %g, \%: %g" % (r.t, r.t/tend*100.) ,end='')
+      print("t: %3.5g, %%: %3.2f %8.3i" % (r.t, r.t/tend*100., time.clock()-start_time), end="\r" )
       sol  = np.append(sol,np.array([[ r.y[0],r.y[1],r.y[2] ]]),axis=0)
 
 ##########################################################################################
