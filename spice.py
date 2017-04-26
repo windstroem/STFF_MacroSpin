@@ -49,7 +49,7 @@ Ms    = 4.e5; # A/m
 #Orientation of polarization vector (must be normalized)
 s       = np.array([0.,0.,-1.]);
 #Aplied current in Ampere
-I       = -1.e2; 
+I       = -1.e3; 
 #Polarization
 p       = 0.9; # for oxides
 #Field like torque relative strength
@@ -66,7 +66,7 @@ tend  = 1.e-9
 
 #Initialization of arrays with start values
 sol   = np.array([m0])
-time  = np.array([t0])
+t     = np.array([t0])
 
 
 #Geometry related calculations
@@ -189,19 +189,19 @@ r.set_initial_value(m0, t0).set_f_params(prefactor)
 #
 while r.successful() and r.t < tend:
       r.integrate(r.t+dt)
-      time = np.append(time,r.t)
-      print("t: %3.5g, %%: %3.2f %8.3i" % (r.t, r.t/tend*100., time.clock()-start_time), end="\r" )
+      t = np.append(t,r.t)
+      print("t: %3.6e, %3.3f%%, %8i seconds" % (r.t, r.t/tend*100., time.clock() - start_time), end="\r" )
       sol  = np.append(sol,np.array([[ r.y[0],r.y[1],r.y[2] ]]),axis=0)
 
 ##########################################################################################
 ##Visualization of simulation results
 ##########################################################################################
 #mx(t)
-plt.plot(time, sol[:,0],label='mx')
+plt.plot(t, sol[:,0],label='mx')
 #my(t)
-plt.plot(time, sol[:,1],label='my')
+plt.plot(t, sol[:,1],label='my')
 #mz(t)
-plt.plot(time, sol[:,2],label='mz')
+plt.plot(t, sol[:,2],label='mz')
 #turn on legend
 plt.legend()
 #set x- and y-axis labels
