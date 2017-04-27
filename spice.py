@@ -74,11 +74,11 @@ V = VA;# + VB + VQ
 #By employing spherical coordinates |m|=1 is ensured
 #Starting position of magnetization
 phi   = 0.2
-theta = 2.
+theta = 1.
 m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
 #Start and end of simulation time
 t0    = 0.
-tend  = 1.e-10
+tend  = 1.e-11
 
 #Initialization of arrays with start values
 sol   = np.array([m0])
@@ -177,8 +177,29 @@ N = np.array([Dx(a,b,c),Dy(a,b,c),Dz(a,b,c)])
 ###################################################################
 #Functions for data manipulation and export
 ###################################################################
+def create_header(comment=''):
+ 'Creates the header information for .crv files'
+ header  = '##STT_MacroSpin model \n'
+ header += '##Contact: Thomas Windbacher (t.windbacher(at)gmail.com)\n'
+ if comment :
+  header += '##'+comment+'\n'
+ header += '##p 4\n'
+ header += '#n t mx my mz\n'
+ header += '#u s 1 1 1\n'
+ return header
 
-
+def write_data(filename,header,t,y):
+ 'Function to dump the simulation data into a .crv file'
+ check = -1
+ with open(filename,'w') as f:
+  f.write(header)
+  for i in range(0,t.size):
+   f.write( str(t[i])+'  ')
+   for l in y[i,:]:
+    f.write(str(l)+'  ')
+   f.write('\n')
+ f.close()
+ return check 
 
 
 ##########################################################################################
@@ -223,5 +244,4 @@ plt.grid(True)
 #put it on the display
 plt.show()
 
-
-
+write_data('test.crv',create_header(),t,sol)
