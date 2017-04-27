@@ -1,9 +1,9 @@
 #!/usr/bin/python
 #Quick and dirty macrospin flip flop implementation since Mathematica is very slow
-#All qunatities are in SI units
+#All quantities are in SI units
 #Thomas Windbacher, 23.3.2017
 
-#Required libraries and functiionalities
+#Required libraries and functionalities
 import os
 import io
 import time
@@ -47,29 +47,17 @@ Ms    = 4.e5; # A/m
 ####################################################
 
 #Orientation of polarization vector (must be normalized)
-s       = np.array([0.,0.,-1.]);
+s       = np.array([0.,0.,1.]);
 #Aplied current in Ampere
-I       = -1.e3; 
+I       = 0.; 
 #Polarization
 p       = 0.9; # for oxides
 #Field like torque relative strength
 epsilon = 0.1
 
-#By employing spherical coordinates |m|=1 is ensured
-#Starting position of magnetization
-phi   = 0.2
-theta = 1.
-m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
-#Start and end of simulation time
-t0    = 0.
-tend  = 1.e-9
-
-#Initialization of arrays with start values
-sol   = np.array([m0])
-t     = np.array([t0])
-
-
+#####################################################
 #Geometry related calculations
+#####################################################
 a  = 3.e-08
 b  = 3.e-08
 c  = 3.e-09
@@ -78,6 +66,23 @@ VA = a*a*c
 VB = VA
 VQ = a*2.*a*c
 V = VA;# + VB + VQ
+
+#####################################################
+#Boundary conditions 
+#####################################################
+
+#By employing spherical coordinates |m|=1 is ensured
+#Starting position of magnetization
+phi   = 0.2
+theta = 2.
+m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
+#Start and end of simulation time
+t0    = 0.
+tend  = 1.e-10
+
+#Initialization of arrays with start values
+sol   = np.array([m0])
+t     = np.array([t0])
 
 #Prefactor for RHS of equation
 prefactor = -1.*gamma/(1+alpha*alpha)
@@ -169,6 +174,13 @@ def f(t,m,prefactor):
 # It is sufficient to calculate only once before the integration
 N = np.array([Dx(a,b,c),Dy(a,b,c),Dz(a,b,c)])
 
+###################################################################
+#Functions for data manipulation and export
+###################################################################
+
+
+
+
 ##########################################################################################
 ##Main section
 ##########################################################################################
@@ -192,7 +204,7 @@ while r.successful() and r.t < tend:
       t = np.append(t,r.t)
       print("t: %3.6e, %3.3f%%, %8i seconds" % (r.t, r.t/tend*100., time.clock() - start_time), end="\r" )
       sol  = np.append(sol,np.array([[ r.y[0],r.y[1],r.y[2] ]]),axis=0)
-
+print("t: %3.6e, %3.3f%%, %8i seconds" % (t[-1], t[-1]/tend*100., time.clock() - start_time), end="\n" )
 ##########################################################################################
 ##Visualization of simulation results
 ##########################################################################################
@@ -207,6 +219,7 @@ plt.legend()
 #set x- and y-axis labels
 plt.ylabel('normalized magnetization (1)')
 plt.xlabel('time (s)')
+plt.grid(True)
 #put it on the display
 plt.show()
 
