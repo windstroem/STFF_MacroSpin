@@ -166,7 +166,7 @@ def f(t,m,prefactor):
  heff      = Heff(mm,Ms,N,K1vec,K1,alpha,gamma,V,Temp,dt)
  precesion = np.cross(mm,heff)
  damping   = alpha*np.cross(mm,precesion)
- stt       = tau(mm,s,I,p,V,Ms,gamma,epsilon,gox(p,m,s))
+ stt       = tau(mm,s,I,p,V,Ms,gamma,epsilon,gox(p,mm,s))
  rhs       = precesion + damping + stt
  return prefactor*rhs
 
