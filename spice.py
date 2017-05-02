@@ -78,7 +78,7 @@ theta = 1.
 m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
 #Start and end of simulation time
 t0    = 0.
-tend  = 1.e-11
+tend  = 1.e-8
 
 #Initialization of arrays with start values
 sol   = np.array([m0])
@@ -158,7 +158,7 @@ def tau (m, s, I, p, V, Ms, gamma, epsilon, g) :
  return (hbar*I)/(Ms*V*qe)*g*( mxmxs - epsilon*mxs );
 
 #Define right hand side of the ODE
-def f(t,m,prefactor):
+def f(t,m,prefactor,Ms,N,K1vec,K1,alpha,gamma,V,Temp,dt,p,s,epsilon,I):
  "RHS of LLG-ODE"
  #Normalize m - otherwise errors accumulate and m starts to drift 
  #towards bigger and bigger >1 values
@@ -217,8 +217,9 @@ def write_data(filename,header,t,y):
 #dfactor : float Maximum factor to increase/decrease step size by in one step
 #beta : float Beta parameter for stabilised step size control.
 # verbosity : int Switch for printing messages (< 0 for no messages).
-r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,nsteps=1e5,rtol=1.e-3,verbosity=True)
-r.set_initial_value(m0, t0).set_f_params(prefactor)
+arguments = (prefactor,Ms,N,K1vec,K1,alpha,gamma,V,0.,dt,p,s,epsilon,I)
+r = ode(f).set_integrator('lsoda',first_step=dt,min_step=dt,max_step=dt,nsteps=2e5,rtol=1.e-3)
+r.set_initial_value(m0, t0).set_f_params(*arguments)
 #
 while r.successful() and r.t < tend:
       r.integrate(r.t+dt)
@@ -244,4 +245,10 @@ plt.grid(True)
 #put it on the display
 plt.show()
 
-write_data('test.crv',create_header(),t,sol)
+write_data('test_'+str(time.clock())+'.crv',create_header(),t,sol)
+
+############################################################################################Scratchpad and debug section
+#########################################################################################
+
+
+
