@@ -168,6 +168,7 @@ def f(t,m,prefactor,Ms,N,K1vec,K1,alpha,gamma,V,Temp,dt,p,s,epsilon,I):
  damping   = alpha*np.cross(mm,precesion)
  stt       = tau(mm,s,I,p,V,Ms,gamma,epsilon,gox(p,mm,s))
  rhs       = precesion + damping + stt
+ m       = mm
  return prefactor*rhs
 
 # Geometry dependent but constant.
@@ -217,8 +218,8 @@ def write_data(filename,header,t,y):
 #dfactor : float Maximum factor to increase/decrease step size by in one step
 #beta : float Beta parameter for stabilised step size control.
 # verbosity : int Switch for printing messages (< 0 for no messages).
-arguments = (prefactor,Ms,N,K1vec,K1,alpha,gamma,V,0.,dt,p,s,epsilon,I)
-r = ode(f).set_integrator('lsoda',first_step=dt,min_step=dt,max_step=dt,nsteps=2e5,rtol=1.e-3)
+arguments = (prefactor,Ms,N,K1vec,K1,alpha,gamma,V,Temp,dt,p,s,epsilon,I)
+r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,nsteps=1e6,atol=1.e-6)
 r.set_initial_value(m0, t0).set_f_params(*arguments)
 #
 while r.successful() and r.t < tend:
