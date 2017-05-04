@@ -83,7 +83,7 @@ theta = 1.
 m0    = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
 m0A   = np.array([ma.cos(phi)*ma.sin(theta),ma.sin(phi)*ma.sin(theta),ma.cos(theta)])
 m0Q   = np.array([ma.cos(0.1)*ma.sin(1.5),ma.sin(0.1)*ma.sin(1.5),ma.cos(1.5)])
-mAQ0  = np.hstack((m0A,m0Q))
+mAQ0  = np.hstack((m0Q,m0A))
 #print(mAQ0)
 #Start and end of simulation time
 t0    = 0.
@@ -154,7 +154,7 @@ def Hstray (m, r, Ms, V) :
 
 def Hexch (m1, m2, r, A, Ms) :
  "Exchange field"
- return (2.*A)/(mu0*Ms)*(m1 - m2)/ma.pow(r,2.);
+ return (-2.*A)/(mu0*Ms)*(m1 - m2)/ma.pow(r,2.);
 
 #Definition of thermal field -> Finocchio,J.Appl.Phys.99 doi:10.1063/1.2177049
 def Htherm(T, alpha, gamma, V, Ms, dt) :
@@ -190,13 +190,13 @@ def f(t,m,prefactor,Ms,NA,NQ,K1vec,K1,alpha,gamma,VA,VQ,Temp,dt,p,s,epsilon,I,d,
  mA= m[0:3]/la.norm(m[0:3])
  mQ= m[3:6]/la.norm(m[3:6])
  #Calculations for MTJ_A
- heffA      = Heff(mA,Ms,NA,K1vec,K1,alpha,gamma,VA,Temp,dt,mQ,d,A,d*np.array([1.,0.,0.]))
+ heffA      = Heff(mA,Ms,NA,K1vec,K1,alpha,gamma,VA,Temp,dt,mQ,d,A,d*np.array([-1.,0.,0.]))
  precesionA = np.cross(mA,heffA)
  dampingA   = alpha*np.cross(mA,precesionA)
  sttA       = tau(mA,s,I,p,VA,Ms,gamma,epsilon,gox(p,mA,s))
  rhsA       = precesionA + dampingA + sttA
  #Calculations for MTJ_Q
- heffQ      = Heff(mQ,Ms,NQ,K1vec,K1,alpha,gamma,VQ,Temp,dt,mA,d,A,d*np.array([-1.,0.,0.]))
+ heffQ      = Heff(mQ,Ms,NQ,K1vec,K1,alpha,gamma,VQ,Temp,dt,mA,d,A,d*np.array([1.,0.,0.]))
  precesionQ = np.cross(mQ,heffQ)
  dampingQ   = alpha*np.cross(mQ,precesionQ)
  sttQ       = tau(mQ,s,I,p,VQ,Ms,gamma,epsilon,gox(p,mQ,s))
@@ -258,14 +258,18 @@ arguments = (prefactor,Ms,N,N,K1vec,K1,alpha,gamma,VA,VQ,Temp,dt,p,s,epsilon,I,d
 r = ode(f).set_integrator('dopri5',first_step=dt,max_step=dt,nsteps=1e6,atol=1.e-3)
 r.set_initial_value(mAQ0, t0).set_f_params(*arguments)
 #
+
+print("Simulated timestep | Total progress | Simulation time", end="\n" )
+print("-------------------------------------------------", end="\n" )
+
 while r.successful() and r.t < tend:
       r.integrate(r.t+dt)
       t = np.append(t,r.t)
-      print("t: %3.6e, %3.3f%%, %s " % (t[-1], t[-1]/tend*100.,datetime.timedelta(seconds=(time.clock() - start_time))), end="\r" )
+      print("   %3.6e,   %3.3f%%,   %s " % (t[-1], t[-1]/tend*100.,datetime.timedelta(seconds=(time.clock() - start_time))), end="\r" )
       #print("t: %3.6e, %3.3f%%, %8i seconds" % (r.t, r.t/tend*100., time.clock() - start_time), end="\r" )
       sol  = np.append(sol,np.array([r.y]),axis=0)
 #print("t: %3.6e, %3.3f%%, %8i seconds" % (t[-1], t[-1]/tend*100., time.clock() - start_time), end="\n" )
-print("t: %3.6e, %3.3f%%, %s " % (t[-1], t[-1]/tend*100.,datetime.timedelta(seconds=(time.clock() - start_time))), end="\n" )
+print("   %3.6e,   %3.3f%%,   %s " % (t[-1], t[-1]/tend*100.,datetime.timedelta(seconds=(time.clock() - start_time))), end="\n" )
 ##########################################################################################
 ##Visualization of simulation results
 ##########################################################################################
@@ -273,30 +277,30 @@ plt.figure(1)
 plt.subplot(211)
 ##MTJ A
 #mx(t)
-plt.plot(t, sol[:,0],label='mx_A')
+plt.plot(t, sol[:,0],label='mx')
 #my(t)
-plt.plot(t, sol[:,1],label='my_A')
+plt.plot(t, sol[:,1],label='my')
 #mz(t)
-plt.plot(t, sol[:,2],label='mz_A')
+plt.plot(t, sol[:,2],label='mz')
 #turn on legend
 plt.legend()
 #set x- and y-axis labels
-plt.ylabel('normalized magnetization (1)')
+plt.ylabel('normalized magnetization of MTJ A (1)')
 plt.xlabel('time (s)')
 plt.grid(True)
 
 ##MTJ Q
 plt.subplot(212)
 #mx(t)
-plt.plot(t, sol[:,3],label='mx_Q')
+plt.plot(t, sol[:,3],label='mx')
 #my(t)
-plt.plot(t, sol[:,4],label='my_Q')
+plt.plot(t, sol[:,4],label='my')
 #mz(t)
-plt.plot(t, sol[:,5],label='mz_Q')
+plt.plot(t, sol[:,5],label='mz')
 #turn on legend
 plt.legend()
 #set x- and y-axis labels
-plt.ylabel('normalized magnetization (1)')
+plt.ylabel('normalized magnetization of MTJ Q (1)')
 plt.xlabel('time (s)')
 plt.grid(True)
 #put it on the display
